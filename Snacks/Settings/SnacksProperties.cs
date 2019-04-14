@@ -60,6 +60,12 @@ namespace Snacks
         [GameParameters.CustomParameterUI("Nap time when fainted", toolTip = "How long will a kerbal nap for when they faint", autoPersistance = true)]
         public FaintTime napTime = FaintTime.OneMinute;
 
+        [GameParameters.CustomParameterUI("Kerbals can starve to death.", toolTip = "If they skip too many meals, kerbals can starve to death.", autoPersistance = true)]
+        public bool canStarveToDeath = false;
+
+        [GameParameters.CustomIntParameterUI("Skipped meals before death", maxValue = 42, minValue = 1, stepSize = 1, toolTip = "How many meals can a kerbal miss before dying", autoPersistance = true)]
+        public int mealsSkippedBeforeDeath = 42;
+
         #region CustomParameterNode
 
         public override string DisplaySection
@@ -132,7 +138,12 @@ namespace Snacks
             else if (member.Name == "mealsBeforeFainting" || member.Name == "napTime")
                 return false;
 
-            return base.Enabled(member, parameters);
+            if (member.Name == "mealsSkippedBeforeDeath" && canStarveToDeath)
+                return true;
+            else if (member.Name == "mealsSkippedBeforeDeath")
+                return false;
+
+            return true;
         }
         #endregion
     }
@@ -144,24 +155,43 @@ namespace Snacks
         private static int defaultSnacksPerCmdPod  = 50;
         private static int defaultSnacksPerCrewPod = 200;
 
-        [GameParameters.CustomIntParameterUI("Snacks per meal", minValue = 1, maxValue = 12, stepSize = 1, toolTip = "How much do kerbals snack on", autoPersistance = true)]
+        [GameParameters.CustomIntParameterUI("Snacks per meal", minValue = 1, maxValue = 12, stepSize = 1, toolTip = "How much do kerbals snack on?", autoPersistance = true)]
         public int snacksPerMeal = 1;
 
-        [GameParameters.CustomIntParameterUI("Meals per day", minValue = 1, maxValue = 12, stepSize = 1, toolTip = "How often do kerbals eat", autoPersistance = true)]
+        [GameParameters.CustomIntParameterUI("Meals per day", minValue = 1, maxValue = 12, stepSize = 1, toolTip = "How often do kerbals eat?", autoPersistance = true)]
         public int mealsPerDay = 3;
 
-        [GameParameters.CustomParameterUI("Some kerbals eat more, some eat less", toolTip = "At snack time, kerbals eat random amounts of Snacks, and the time between snacking is also random", autoPersistance = true)]
+        [GameParameters.CustomParameterUI("Some kerbals eat more, some eat less", toolTip = "At snack time, kerbals eat random amounts of Snacks, and the time between snacking is also random.", autoPersistance = true)]
         public bool enableRandomSnacking = true;
 
-        [GameParameters.CustomParameterUI("Enable recycling", toolTip = "Kerbals produce Soil when snacking. Recyclers convert the Soil back to Snacks at the cost of ElectricCharge", autoPersistance = true)]
+        [GameParameters.CustomParameterUI("Enable recycling", toolTip = "Kerbals produce Soil when snacking. Recyclers convert the Soil back to Snacks at the cost of ElectricCharge.", autoPersistance = true)]
         public bool enableRecyclers = true;
 
-        [GameParameters.CustomIntParameterUI("Recycler Efficiency %", minValue = 10, maxValue = 100, stepSize = 10, toolTip = "How well does the recycler recyle", autoPersistance = true)]
+        [GameParameters.CustomIntParameterUI("Recycler Efficiency %", minValue = 10, maxValue = 100, stepSize = 10, toolTip = "How well does the recycler recyle?", autoPersistance = true)]
         public int recyclerEfficiency2 = 40;
 
-        public float productionEfficiency = 1.0f;
+        [GameParameters.CustomIntParameterUI("Production Efficiency %", minValue = 10, maxValue = 100, stepSize = 10, toolTip = "How well does the processor produce snacks?", autoPersistance = true)]
+        public int processorEfficiency = 100;
 
         #region Properties
+
+        public static int MealsSkippedBeforeDeath
+        {
+            get
+            {
+                SnackPenalties penalties = HighLogic.CurrentGame.Parameters.CustomParams<SnackPenalties>();
+                return penalties.mealsSkippedBeforeDeath;
+            }
+        }
+
+        public static bool CanStarveToDeath
+        {
+            get
+            {
+                SnackPenalties penalties = HighLogic.CurrentGame.Parameters.CustomParams<SnackPenalties>();
+                return penalties.canStarveToDeath;
+            }
+        }
 
         public static bool FaintWhenHungry
         {
@@ -252,7 +282,7 @@ namespace Snacks
             get
             {
                 SnacksProperties snackProperties = HighLogic.CurrentGame.Parameters.CustomParams<SnacksProperties>();
-                return snackProperties.productionEfficiency;
+                return (float)snackProperties.processorEfficiency;
             }
         }
 
@@ -260,7 +290,7 @@ namespace Snacks
         {
             get
             {
-                PartResourceDefinition snacksResource = PartResourceLibrary.Instance.GetDefinition("Snacks");
+                PartResourceDefinition snacksResource = PartResourceLibrary.Instance.GetDefinition(SnacksResourceName);
                 return snacksResource.id;
             }
         }
